@@ -1,8 +1,6 @@
-// bin/server.dart
-// ignore_for_file: implicit_call_tearoffs
-
-import 'dart:convert';
+// bin/server.dart - FIXED STANDALONE VERSION
 import 'dart:io';
+import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart';
 import 'package:shelf_router/shelf_router.dart';
@@ -61,40 +59,6 @@ final List<Map<String, dynamic>> attractions = [
     'created_at': '2024-01-01T00:00:00Z',
     'updated_at': '2024-01-01T00:00:00Z',
   },
-  {
-    'id': 4,
-    'name': 'Kafue National Park',
-    'location': 'Central Zambia',
-    'description':
-        'Zambia\'s oldest and largest national park with diverse landscapes and wildlife.',
-    'image_path': 'assets/kafue_park.jpg',
-    'rating': 4.6,
-    'price': 20.0,
-    'activities': ['Game Drives', 'Bush Walks', 'Boat Trips'],
-    'latitude': -15.5,
-    'longitude': 26.0,
-    'category': 'National Park',
-    'is_popular': false,
-    'created_at': '2024-01-01T00:00:00Z',
-    'updated_at': '2024-01-01T00:00:00Z',
-  },
-  {
-    'id': 5,
-    'name': 'Livingstone Museum',
-    'location': 'Livingstone',
-    'description':
-        'Zambia\'s largest and oldest museum, featuring exhibits on David Livingstone and local culture.',
-    'image_path': 'assets/livingstone_museum.jpg',
-    'rating': 4.3,
-    'price': 5.0,
-    'activities': ['Museum Tours', 'Cultural Exhibits', 'Historical Learning'],
-    'latitude': -17.8419,
-    'longitude': 25.8564,
-    'category': 'Museum',
-    'is_popular': false,
-    'created_at': '2024-01-01T00:00:00Z',
-    'updated_at': '2024-01-01T00:00:00Z',
-  },
 ];
 
 final List<Map<String, dynamic>> accommodations = [
@@ -136,50 +100,6 @@ final List<Map<String, dynamic>> accommodations = [
     'created_at': '2024-01-01T00:00:00Z',
     'updated_at': '2024-01-01T00:00:00Z',
   },
-  {
-    'id': 3,
-    'name': 'Mfuwe Lodge',
-    'description':
-        'Safari lodge located inside South Luangwa National Park, known for elephants walking through reception.',
-    'location': 'South Luangwa',
-    'type': 'Lodges',
-    'price': 280.0,
-    'rating': 4.7,
-    'image_path': 'assets/mfuwe_lodge.jpg',
-    'amenities': [
-      'Pool',
-      'Game drives',
-      'Restaurant',
-      'Bar',
-      'Wildlife viewing'
-    ],
-    'images': [],
-    'coordinates': {'lat': -13.0864, 'lng': 31.8656},
-    'is_available': true,
-    'is_favorite': false,
-    'review_count': 156,
-    'created_at': '2024-01-01T00:00:00Z',
-    'updated_at': '2024-01-01T00:00:00Z',
-  },
-  {
-    'id': 4,
-    'name': 'Avani Victoria Falls Resort',
-    'description':
-        'Family-friendly resort with free access to Victoria Falls and African-themed architecture.',
-    'location': 'Livingstone',
-    'type': 'Resorts',
-    'price': 220.0,
-    'rating': 4.5,
-    'image_path': 'assets/avani_resort.jpg',
-    'amenities': ['Pool', 'Free WiFi', 'Restaurant', 'Bar', 'Falls access'],
-    'images': [],
-    'coordinates': {'lat': -17.9243, 'lng': 25.8572},
-    'is_available': true,
-    'is_favorite': false,
-    'review_count': 298,
-    'created_at': '2024-01-01T00:00:00Z',
-    'updated_at': '2024-01-01T00:00:00Z',
-  },
 ];
 
 // Helper function to create JSON response
@@ -211,30 +131,26 @@ Response successResponse(dynamic data, {String? message}) {
 }
 
 void main(List<String> args) async {
-  // Use any available host or container IP (0.0.0.0).
-  final ip = InternetAddress.anyIPv4;
+  print('🚀 Starting Zambia Tourism API...');
 
-  // Configure routes.
+  // CORS configuration
+  final overrideHeaders = {
+    ACCESS_CONTROL_ALLOW_ORIGIN: '*',
+    ACCESS_CONTROL_ALLOW_METHODS: 'GET, POST, PUT, DELETE, OPTIONS',
+    ACCESS_CONTROL_ALLOW_HEADERS: 'Origin, Content-Type, Authorization',
+  };
+
+  // Configure router
   final router = Router();
 
-  // CORS middleware
-  final handler = Pipeline()
-      .addMiddleware(corsHeaders())
-      .addMiddleware(logRequests())
-      .addHandler(router);
+  // Health check endpoint
+  router.get('/health', (Request request) {
+    return Response.ok('Zambia Tourism API is running!');
+  });
 
   // Root endpoint
   router.get('/', (Request request) {
     return Response.ok('Zambia Tourism Backend API is running!');
-  });
-
-  // Health check
-  router.get('/health', (Request request) {
-    return jsonResponse({
-      'status': 'healthy',
-      'timestamp': DateTime.now().toIso8601String(),
-      'version': '1.0.0',
-    });
   });
 
   // Attractions endpoints
@@ -258,12 +174,6 @@ void main(List<String> args) async {
     }
 
     return successResponse(attraction);
-  });
-
-  router.get('/api/attractions/popular', (Request request) {
-    final popularAttractions =
-        attractions.where((a) => a['is_popular'] == true).toList();
-    return successResponse(popularAttractions);
   });
 
   router.get('/api/attractions/search', (Request request) {
@@ -307,73 +217,27 @@ void main(List<String> args) async {
     return successResponse(accommodation);
   });
 
-  router.get('/api/accommodations/search', (Request request) {
-    final query = request.url.queryParameters['q']?.toLowerCase();
-    if (query == null || query.isEmpty) {
-      return errorResponse('Search query is required');
-    }
-
-    final results = accommodations.where((a) {
-      final name = (a['name'] as String).toLowerCase();
-      final location = (a['location'] as String).toLowerCase();
-      final description = (a['description'] as String).toLowerCase();
-      return name.contains(query) ||
-          location.contains(query) ||
-          description.contains(query);
-    }).toList();
-
-    return successResponse(results);
-  });
-
-  // Filter accommodations by type
-  router.get('/api/accommodations/filter', (Request request) {
-    final type = request.url.queryParameters['type'];
-    final location = request.url.queryParameters['location'];
-    final minPrice =
-        double.tryParse(request.url.queryParameters['min_price'] ?? '');
-    final maxPrice =
-        double.tryParse(request.url.queryParameters['max_price'] ?? '');
-
-    var filtered = accommodations.toList();
-
-    if (type != null && type.isNotEmpty) {
-      filtered = filtered.where((a) => a['type'] == type).toList();
-    }
-
-    if (location != null && location.isNotEmpty) {
-      filtered = filtered
-          .where((a) => (a['location'] as String)
-              .toLowerCase()
-              .contains(location.toLowerCase()))
-          .toList();
-    }
-
-    if (minPrice != null) {
-      filtered = filtered.where((a) => a['price'] >= minPrice).toList();
-    }
-
-    if (maxPrice != null) {
-      filtered = filtered.where((a) => a['price'] <= maxPrice).toList();
-    }
-
-    return successResponse(filtered);
-  });
-
-  // Auth endpoints (mock)
+  // Auth endpoints (FIXED - Mock authentication)
   router.post('/api/auth/login', (Request request) async {
     try {
+      print('📥 Login request received');
       final body = await request.readAsString();
-      final data = jsonDecode(body);
+      print('📤 Request body: $body');
 
-      // Mock authentication - in real app, validate against database
-      if (data['email'] == 'test@example.com' &&
-          data['password'] == 'password') {
-        return successResponse({
+      final data = jsonDecode(body);
+      final email = data['email'];
+      final password = data['password'];
+
+      print('🔐 Login attempt for: $email');
+
+      // Mock authentication - accept any email/password for demo
+      if (email != null && password != null) {
+        final responseData = {
           'token': 'mock_jwt_token_123456789',
           'user': {
             'id': 1,
-            'name': 'Test User',
-            'email': 'test@example.com',
+            'name': 'Demo User',
+            'email': email,
             'phone': '+260123456789',
             'profile_picture': null,
             'date_of_birth': null,
@@ -383,39 +247,63 @@ void main(List<String> args) async {
             'created_at': '2024-01-01T00:00:00Z',
             'updated_at': '2024-01-01T00:00:00Z',
           }
-        });
+        };
+
+        print('✅ Login successful for: $email');
+        return successResponse(responseData);
       } else {
-        return errorResponse('Invalid credentials', statusCode: 401);
+        print('❌ Missing email or password');
+        return errorResponse('Email and password are required',
+            statusCode: 400);
       }
     } catch (e) {
-      return errorResponse('Invalid request body');
+      print('❌ Login error: $e');
+      return errorResponse('Login failed: $e', statusCode: 500);
     }
   });
 
   router.post('/api/auth/register', (Request request) async {
     try {
+      print('📥 Register request received');
       final body = await request.readAsString();
-      final data = jsonDecode(body);
+      print('📤 Request body: $body');
 
-      // Mock registration
-      return successResponse({
-        'token': 'mock_jwt_token_123456789',
-        'user': {
-          'id': 2,
-          'name': data['name'],
-          'email': data['email'],
-          'phone': data['phone'],
-          'profile_picture': null,
-          'date_of_birth': null,
-          'nationality': null,
-          'preferences': null,
-          'is_verified': false,
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-        }
-      });
+      final data = jsonDecode(body);
+      final name = data['name'];
+      final email = data['email'];
+      final password = data['password'];
+      final phone = data['phone'];
+
+      print('👤 Registration attempt for: $email');
+
+      if (name != null && email != null && password != null) {
+        final responseData = {
+          'token': 'mock_jwt_token_123456789',
+          'user': {
+            'id': 2,
+            'name': name,
+            'email': email,
+            'phone': phone,
+            'profile_picture': null,
+            'date_of_birth': null,
+            'nationality': null,
+            'preferences': null,
+            'is_verified': false,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          }
+        };
+
+        print('✅ Registration successful for: $email');
+        return successResponse(responseData);
+      } else {
+        print('❌ Missing required fields');
+        return errorResponse('Name, email, and password are required',
+            statusCode: 400);
+      }
     } catch (e) {
-      return errorResponse('Invalid request body');
+      print('❌ Registration error: $e');
+      return errorResponse('Registration failed: $e', statusCode: 500);
     }
   });
 
@@ -454,9 +342,52 @@ void main(List<String> args) async {
     return errorResponse('Route not found', statusCode: 404);
   });
 
-  // Configure a pipeline that logs requests.
-  final server = await serve(handler, ip, 8080);
-  print('Server listening on port ${server.port}');
-  print('API available at: http://localhost:8080/api');
-  print('Health check: http://localhost:8080/health');
+  // Add middleware
+  final handler = Pipeline()
+      .addMiddleware(corsHeaders(headers: overrideHeaders))
+      .addMiddleware(logRequests())
+      .addHandler(router.call);
+
+  // IMPORTANT: Bind to all interfaces (0.0.0.0) instead of localhost
+  final ip = InternetAddress.anyIPv4;
+  final port = int.parse(Platform.environment['PORT'] ?? '8080');
+  final server = await serve(handler, ip, port);
+
+  // Get the actual network IP address
+  String? networkIP;
+  try {
+    final interfaces = await NetworkInterface.list();
+    for (var interface in interfaces) {
+      for (var addr in interface.addresses) {
+        if (addr.type == InternetAddressType.IPv4 && !addr.isLoopback) {
+          networkIP = addr.address;
+          break;
+        }
+      }
+      if (networkIP != null) break;
+    }
+  } catch (e) {
+    print('⚠️  Could not determine network IP: $e');
+  }
+
+  print('');
+  print('🎉 Zambia Tourism API server is running!');
+  print('🌐 Server bound to: 0.0.0.0:${server.port}');
+  print('🌐 Local access: http://localhost:${server.port}');
+  if (networkIP != null) {
+    print('🌐 Network access: http://$networkIP:${server.port}');
+    print('📱 For mobile device: http://$networkIP:${server.port}/api');
+  }
+  print('🏥 Health check: http://localhost:${server.port}/health');
+  print('📍 API Base URL: http://localhost:${server.port}/api');
+  print('');
+  print('📋 Available endpoints:');
+  print('   GET    /api/attractions');
+  print('   GET    /api/accommodations');
+  print('   POST   /api/auth/register');
+  print('   POST   /api/auth/login');
+  print('   POST   /api/bookings');
+  print('');
+  print('🟢 Server ready - Database not required for this version');
+  print('Press Ctrl+C to stop the server');
 }
